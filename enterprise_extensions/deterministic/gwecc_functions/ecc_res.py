@@ -16,7 +16,7 @@ parsec = sc.parsec
 KPC2S = parsec/c * 1e3
 
 @signal_base.function
-def add_ecc_cgw(toas, theta, phi, pdist = 1.0, gwtheta, gwphi, log10_dist = 6, log10_mc, q, log10_fgw, e0, l0, gamma0, inc, psi, l_P = None, gamma_P = None, tref = 0, psrterm = True, evol = True, waveform_cal = True, res = 'Both'):
+def add_ecc_cgw(toas, theta, phi, gwtheta, gwphi, log10_mc, q, log10_fgw, e0, l0, gamma0, inc, psi, pdist = 1.0, log10_dist = 6.0, l_P = None, gamma_P = None, tref = 0, psrterm = True, evol = True, waveform_cal = True, res = 'Both'):
     """
     Simulate GW from eccentric SMBHB. Waveform models from
     Susobhanan et al. (2020).
@@ -48,10 +48,11 @@ def add_ecc_cgw(toas, theta, phi, pdist = 1.0, gwtheta, gwphi, log10_dist = 6, l
     F0 = 10**log10_fgw
     mc = 10**log10_mc
     gwdist = 10**log10_dist
+    toas *= 86400
     n0 = 2 * pi * F0
     tref = tref * 86400
     
-	
+    
     cosmu, Fp, Fx = ap.antenna_pattern(gwphi, gwtheta, phi, theta)
 	
     if (res == 'Both' or res == 'Earth'):
