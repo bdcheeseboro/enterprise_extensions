@@ -40,7 +40,7 @@ def get_hA_hB(i, e, u, phi, delta):
 
 def calculate_sp_sx(toas, gwdist, mc, q, n0, e0, l0, gamma0, inc, psi, 
 				tref, Fp, Fx, evol, waveform_cal):
-	
+
 	toa_sample = np.linspace(np.min(toas), np.max(toas), int((np.max(toas) - np.min(toas))/86400), endpoint=True)
 	
 	m = (((1+q)**2)/q)**(3/5) * mc
