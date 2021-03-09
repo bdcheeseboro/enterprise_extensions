@@ -13,7 +13,7 @@ c = sc.speed_of_light
 TSUN = GMsun / c**3
 parsec = sc.parsec
 KPC2S = parsec/c * 1e3
-MPC2S = parsec/c
+PC2S = parsec/c
 
 
 def get_hA_hB(i, e, u, phi, delta):
@@ -43,8 +43,9 @@ def calculate_sp_sx(toas, gwdist, mc, q, n0, e0, l0, gamma0, inc, psi,
     
     toa_sample = np.linspace(np.min(toas), np.max(toas), int((np.max(toas) - np.min(toas))/86400), endpoint=True)
 	
-    m = (((1+q)**2)/q)**(3/5) * mc
+    #m = (((1+q)**2)/q)**(3/5) * mc
     eta = q/(1+q)**2
+    m = mc/eta**(3/5)
     delta = (1-q)/(1+q)
     e02 = e0*e0
 
@@ -58,25 +59,41 @@ def calculate_sp_sx(toas, gwdist, mc, q, n0, e0, l0, gamma0, inc, psi,
         ls = l0 + n0 * (toa_sample - tref)
         gammas = gamma0 + k0 *n0 * (toa_sample - tref)
         
+    
+    emax = np.max(es)
+    if emax >= 1.0:
+        #print("e_max =", emax)
+        #print("Encounter e >= 1.0! Setting return to NaN!!")
+        return np.full(len(toas), np.nan)
+        
+    xs, ks, ephis = eu.get_x_k_ephi(ns, es, m, eta)
+    
+    ephimax = np.max(ephis)
+    if ephimax >= 1.0:
+        #print("ephi_max =", ephimax)
+        #print("Encounter ephi >= 1.0! Setting return to NaN!!")
+        return np.full(len(toas), np.nan)
+    
+    kmax = np.max(ks)    
+    if kmax >= 0.5:
+        #print("k_max =", kmax)
+        #print("Encounter k_max >= 1.0! Binary is out of inspiral phae! Setting return to NaN!!")
+        return np.full(len(toas), np.nan)
+        
     if waveform_cal:
-        if np.size(ns)==1:
-        	if ns == 0:
-            		failed = np.empty(len(toas))
-            		failed[:] = np.NaN
-            		return failed
-        else:
-            xs, us, phis = eu.get_x_u_phi(ns, es, ls, gammas, m, eta, evol)
-            H0 = TSUN * m * eta * xs / (gwdist * MPC2S)
-            h_mq_A, h_mq_B, h_cq_A, h_cq_B = get_hA_hB(inc, es, us, phis, delta)
-        
-            hA = h_mq_A + sqrt(xs) * h_cq_A
-            hB = h_mq_B + sqrt(xs) * h_cq_B
-        
-            hps = H0 * (hA * cos(2*psi) - hB * sin(2*psi))
-            hxs = H0 * (hB * cos(2*psi) + hA * sin(2*psi))
-            hs = Fp * hps + Fx * hxs
-        
-            res = cumtrapz(hs, x = toa_sample, initial=0)
-            res_fun = interp1d(toa_sample, res)
-            residuals = res_fun(toas)
-            return (residuals)
+        us, phis = eu.get_u_phi(xs, ks, ephis, es, ls, gammas)
+                
+        H0 = TSUN * m * eta * xs / (gwdist * PC2S)
+        h_mq_A, h_mq_B, h_cq_A, h_cq_B = get_hA_hB(inc, es, us, phis, delta)
+    
+        hA = h_mq_A + sqrt(xs) * h_cq_A
+        hB = h_mq_B + sqrt(xs) * h_cq_B
+    
+        hps = H0 * (hA * cos(2*psi) - hB * sin(2*psi))
+        hxs = H0 * (hB * cos(2*psi) + hA * sin(2*psi))
+        hs = Fp * hps + Fx * hxs
+    
+        res = cumtrapz(hs, x = toa_sample, initial=0)
+        res_fun = interp1d(toa_sample, res)
+        residuals = res_fun(toas)
+        return (residuals)

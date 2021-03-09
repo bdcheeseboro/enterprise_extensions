@@ -132,71 +132,41 @@ def gbar2_from_e(e, eta):
 
 
 def evolve_orbit(ts, mc, q, n0, e0, l0, gamma0, tref):
-	m = (((1+q)**2)/q)**(3/5) * mc
-	eta = q/(1+q)**2
-	e02 = e0*e0
+    #m = (((1+q)**2)/q)**(3/5) * mc
+    eta = q/(1+q)**2
+    m = mc/eta**(3/5)
+    e02 = e0*e0
 
-	A = (TSUN * mc)**(5./3)/5
-	P = (A/3.)* n0**(8./3)*e0**(48./19)*(304 + 121*e02)**(3480./2299)/(1 - e02)**4
+    A = (TSUN * mc)**(5./3)/5
+    P = (A/3.)* n0**(8./3)*e0**(48./19)*(304 + 121*e02)**(3480./2299)/(1 - e02)**4
 	
-	tau0 = tau_from_e(e0)
-	taus = tau0 - P*(ts - tref)
+    tau0 = tau_from_e(e0)
+    taus = tau0 - P*(ts - tref)
+    
+    if np.any(taus < 0):
+        print(f"mc = {mc}, q = {q}, n0 = {n0}, e0 = {e0}, tref = {tref}.")
+        raise ValueError("tau < 0 encountered!!")
 
-	if np.size(taus)==1:
-		if taus < 0:
-			#print("Warning!!! Binary merged within observation time")
-			#zeros = np.zeros(len(taus))
-			return(0, 0, 0, 0)
-		else:
-			es = e_from_tau(taus)
-			ns = n_from_e(es, n0, e0)
-			
-			alpha = compute_alpha_coeff(A, n0, e0)
-			lbar0 = lbar_from_e(e0)
-			lbars = lbar_from_e(es)
-			ls = l0 + (lbar0 - lbars)*alpha
-			
-			beta = compute_beta_coeff(A, m, n0, e0)
-			gbar0 = gbar_from_e(e0)
-			gbar = gbar_from_e(es)
-			gamma1 = gamma0 + (gbar0 - gbar)*beta
-			
-			beta2 = compute_beta2_coeff(A, m, n0, e0)
-			gbar20 = gbar2_from_e(e0, eta)
-			gbar2 = gbar2_from_e(es, eta)
-			gamma2 = (gbar20 - gbar2)*beta2
-			
-			gammas = gamma1 + gamma2
-			return(ns, es, ls, gammas)
-	else:
-		if np.min(taus) < 0:
-			#print("Warning!!! Binary merged within observation time")
-			zeros = np.zeros(len(taus))
-			return(zeros, zeros, zeros, zeros)
-		else:
-			es = e_from_tau(taus)
-			ns = n_from_e(es, n0, e0)
-			
-			alpha = compute_alpha_coeff(A, n0, e0)
-			lbar0 = lbar_from_e(e0)
-			lbars = lbar_from_e(es)
-			ls = l0 + (lbar0 - lbars)*alpha
-			
-			beta = compute_beta_coeff(A, m, n0, e0)
-			gbar0 = gbar_from_e(e0)
-			gbar = gbar_from_e(es)
-			gamma1 = gamma0 + (gbar0 - gbar)*beta
-			
-			beta2 = compute_beta2_coeff(A, m, n0, e0)
-			
-			gbar20 = gbar2_from_e(e0, eta)
-			gbar2 = gbar2_from_e(es, eta)
-			gamma2 = (gbar20 - gbar2)*beta2
-			
-			gammas = gamma1 + gamma2
-			
-			return(ns, es, ls, gammas)
-
+    es = e_from_tau(taus)
+    ns = n_from_e(es, n0, e0)
+	
+    alpha = compute_alpha_coeff(A, n0, e0)
+    lbar0 = lbar_from_e(e0)
+    lbars = lbar_from_e(es)
+    ls = l0 + (lbar0 - lbars)*alpha
+	
+    beta = compute_beta_coeff(A, m, n0, e0)
+    gbar0 = gbar_from_e(e0)
+    gbar = gbar_from_e(es)
+    gamma1 = gamma0 + (gbar0 - gbar)*beta
+	
+    beta2 = compute_beta2_coeff(A, m, n0, e0)
+    gbar20 = gbar2_from_e(e0, eta)
+    gbar2 = gbar2_from_e(es, eta)
+    gamma2 = (gbar20 - gbar2)*beta2
+	
+    gammas = gamma1 + gamma2
+    return(ns, es, ls, gammas)
 
 
 
@@ -218,34 +188,32 @@ def get_PN_x(n, m, k):
 	return(x)
 
 
-def get_x_ephi(n, e, m, eta, k):
-	x = (TSUN * m * n * (1 + k))**(2./3)
-	OTS = sqrt(1 - e*e)
+def get_x_k_ephi(n, e, m, eta):
+    k = get_k(n, e, m, eta)
+    x = (TSUN * m * n * (1 + k))**(2./3)
+    OTS = sqrt(1 - e*e)
 	
-	ep = e*(1 + x*(4 - eta) + + x*x *(4*(-12*(26 + 15*OTS) 
-		+ eta*(17 + 72*OTS + eta)) + e*e *(1152 + eta*(-659 + 41*eta)))/(96*(-1 + e*e)))
-	return(x, ep)
+    ep = e*(1 + x*(4 - eta) + + x*x *(4*(-12*(26 + 15*OTS) 
+    + eta*(17 + 72*OTS + eta)) + e*e *(1152 + eta*(-659 + 41*eta)))/(96*(-1 + e*e)))
+    return(x, k, ep)
 
 
-def get_x_u_phi(n, e, l, gamma, m, eta, evol):
-	u = mikkola_array.get_u(l,e)
-	L = l + gamma
+def get_u_phi(x, k, ephi, e, l, gamma):
+    u = mikkola_array.get_u(l,e)
+    L = l + gamma
 	
-	su = sin(u)
-	cu = cos(u)
+    su = sin(u)
+    cu = cos(u)
 	
-	k = get_k(n, e, m, eta)
-	x, ephi = get_x_ephi(n, e, m, eta, k)
+    if ephi[-1]>1.e-15:
+        betaphi = (1 - sqrt(1 - ephi**2))/ephi
+    else:
+        betaphi = e/2. + e**3/8. + e**5/16
 	
-	if ephi[-1]>1.e-15:
-		betaphi = (1 - sqrt(1 - ephi**2))/ephi
-	else:
-		betaphi = e/2. + e**3/8. + e**5/16
+    v_u = 2 * np.arctan2(betaphi*su, 1 - betaphi*cu)
+    v_l = v_u + e*su
 	
-	v_u = 2 * np.arctan2(betaphi*su, 1 - betaphi*cu)
-	v_l = v_u + e*su
-	
-	W = (1 + k) * v_l
-	phi = L + W
-	
-	return(x, u, phi)
+    W = (1 + k) * v_l
+    phi = L + W
+        
+    return(u, phi)
