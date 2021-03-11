@@ -81,11 +81,18 @@ def add_ecc_cgw(toas, theta, phi, pdist, gwtheta, gwphi, log10_mc, q, log10_forb
     #if psrterm:
     if (res == 'Both' or res == 'Pulsar'):
         #print("Calculating Pulsar term")
-        dt_P = pulsar_dist * (1 - cosmu)
-        toas_P = toas - dt_P
-        
+        if p_dist > 0:
+            dt_P = pulsar_dist * (1 - cosmu)
+            toas_P = toas - dt_P
+        else:
+            dt_P = pulsar_dist * (1 - cosmu)
+            toas_P = toas
+            
         if (pphase is not None or gamma_P is not None or evol is False):
-            tref_P = tref - dt_P
+            if p_dist > 0:
+                tref_P = tref - dt_P
+            else:
+                tref_P = tref
             #print("Setting tref_P = ", tref_P)
             n0_P, e0_P, l0_P, gamma0_P = eu.evolve_orbit(tref_P, mc, q, n0, e0, l0, gamma0, tref)
 
